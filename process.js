@@ -2,8 +2,10 @@ const fs = require('fs')
 const input = require('./input.json');
 
 const output = {elements:[], deletes: [], source: 'magicdraw'};
-const toRemove = ['_appliedStereotypeIds', 'appliedStereotypeInstanceId', '_modified', '_modifier', '_commitId',
+const toRemove = ['_appliedStereotypeIds', 'appliedStereotypeInstanceId', 'stereotypedElementId', '_modified', '_modifier', '_commitId',
     '_docId', '_creator', '_created', '_projectId', '_refId', '_inRefIds'];
+const ASIDS = '_appliedStereotypeIds';
+const ASID = 'appliedStereotypeInstanceId';
 const asiMapping = {};
 function getType(values) {
     if (!values || values.length < 1) {
@@ -40,7 +42,35 @@ function getValues(values) {
     }
     return res;
 }
-
+function cleanValue(val, skip) {
+    if (!skip) {
+        val.taggedValueIds = [];
+        val.appliedStereotypeIds = [];
+    }
+    if (val.hasOwnProperty(ASIDS)) {
+        delete val[ASIDS];
+    }
+    if (val.hasOwnProperty(ASID)) {
+        delete val[ASID];
+    }
+    if (val.visibility) {
+        val.visibility = null; //value specs should have null visibility?
+    }
+    if (val.operand) {
+        for (let o of val.operand) {
+            cleanValue(o);
+        }
+    }
+    if (val.min) {
+        cleanValue(val.min);
+    }
+    if (val.max) {
+        cleanValue(val.max);
+    }
+    if (val.expr) {
+        cleanValue(val.expr);
+    }
+}
 for (const e of input.elements) {
     if (e.type === 'InstanceSpecification' && e.id.endsWith('_asi')) {
         asiMapping[e.id] = e;
@@ -65,17 +95,48 @@ for (const e of input.elements) {
             delete newe.value;
         } else {
             newe.value = getValues(e.value);
+            for (const val of newe.value) {
+                cleanValue(val, true);
+            }
+        }
+        if (newe.hasOwnProperty('definingFeatureId')) {
+            delete newe['definingFeatureId'];
+        }
+        if (newe.hasOwnProperty('owningInstanceId')) {
+            delete newe['owningInstanceId'];
         }
     }
-    newe.appliedStereotypeIds = e._appliedStereotypeIds;
+    if (e.hasOwnProperty(ASIDS)) {
+        newe.appliedStereotypeIds = e[ASIDS];
+    }
     newe.taggedValueIds = [];
-    if (e.appliedStereotypeInstanceId && asiMapping[e.appliedStereotypeInstanceId]) {
-        newe.taggedValueIds = asiMapping[e.appliedStereotypeInstanceId].slotIds;
+    if (e[ASID] && asiMapping[e[ASID]]) {
+        newe.taggedValueIds = asiMapping[e[ASID]].slotIds;
     }
     for (const key of toRemove) {
         if (newe.hasOwnProperty(key)) {
             delete newe[key];
         }
+    }
+    if ((newe.type === 'Slot') && newe.value) { //fix keys in embedded value spec objects
+        for (const val of newe.value) {
+            cleanValue(val);
+        }
+    }
+    if (newe.value && !Array.isArray(newe.value)) {
+        cleanValue(newe.value);
+    }
+    if (newe.defaultValue) {
+        cleanValue(newe.defaultValue);
+    }
+    if (newe.upperValue) {
+        cleanValue(newe.upperValue);
+    }
+    if (newe.lowerValue) {
+        cleanValue(newe.lowerValue);
+    }
+    if (newe.specification) {
+        cleanValue(newe.specification);
     }
     output.elements.push(newe);
 }

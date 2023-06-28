@@ -138,6 +138,15 @@ for (const e of input.elements) {
     if (newe.specification) {
         cleanValue(newe.specification);
     }
+    if (newe.when) {
+        cleanValue(newe.when);
+    }
+    if (newe._contents) {
+        cleanValue(newe._contents);
+    }
+    if (newe.weight) {
+        cleanValue(newe.weight);
+    }
     output.elements.push(newe);
 }
 fs.writeFileSync('output.json', JSON.stringify(output));

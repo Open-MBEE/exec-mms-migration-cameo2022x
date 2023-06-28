@@ -17,4 +17,4 @@ For each project/branch to be migrated:
 
 3. post output back to mms with overwrite flag
 
-    `curl -X POST -u mms4user -H 'Content-Type: application/json' -d@output.json {http://mms4domain.com}/projects/{projectId}/refs/{master}/elements?overwrite=true`
+    `curl -X POST -u mms4user -H 'Content-Type: application/json' -d@output.json {http://mms4domain.com}/projects/{projectId}/refs/{master}/elements?overwrite=true > out.txt`
